@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Integralfunktion – interaktiv entdecken</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#172033;--muted:#657083;--border:#d7dce4;--accent:#5b4bb7;--accentbg:#eeeafd;--f:#2878a5;--area:#e1ad43;--integ:#3d8b63}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:16px system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+main{max-width:1500px;margin:auto;padding:18px}.top{display:grid;grid-template-columns:minmax(300px,1fr) 150px auto;gap:12px;align-items:end}
+label span{display:block;font-size:14px;font-weight:650;margin-bottom:5px}input[type=text],input[type=number]{width:100%;height:42px;border:1px solid var(--border);border-radius:9px;padding:0 11px;font-size:16px;background:white}
+button{min-height:42px;border:1px solid var(--border);border-radius:9px;background:white;padding:8px 14px;font-weight:650;cursor:pointer}button.primary{background:var(--accentbg);border-color:var(--accent)}
+.help,.muted{color:var(--muted);font-size:13px}.help{margin:6px 0 12px}.error{display:none;padding:10px;border:1px solid #b94a48;border-radius:8px;margin-bottom:10px;background:#fff}
+.sliderbox{background:white;border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px}.sliderhead{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}.slider{width:100%;margin-top:10px}.ticks{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}.panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;min-width:0}
+h2{font-size:17px;margin:0 0 3px}.graph{display:block;width:100%;height:auto;max-height:58vh}.result{text-align:center;background:#f4f5f7;border-radius:9px;padding:9px;margin-top:6px}.big{font-size:19px;font-weight:700;margin-top:3px}
+.mathIntegral{display:inline-flex;align-items:center;justify-content:center;font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-weight:400}
+.intstack{display:inline-grid;grid-template-rows:auto 1.9em auto;justify-items:center;align-items:center;width:1.55em;margin:0 .18em;vertical-align:middle}
+.intupper,.intlower{font-size:.58em;line-height:1;white-space:nowrap;text-align:center}.intupper{transform:translateY(-0.32em)}.intlower{transform:translateY(0.32em)}
+.intsymbol{font-size:2.15em;line-height:.7;align-self:center}
+.mathbody{margin-left:.18em;white-space:nowrap}
+.hiddenstate{min-height:330px;border:1px dashed var(--border);border-radius:9px;display:flex;align-items:center;justify-content:center;text-align:center;padding:25px}.hiddenstate p{max-width:390px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}.note{display:none;margin-top:12px;padding:10px;border:1px solid var(--border);border-radius:9px;background:white}
+@media(max-width:850px){.top{grid-template-columns:1fr 120px}.top button{grid-column:1/-1}.panels{grid-template-columns:1fr}.graph{max-height:none}}
+@media(min-width:851px){body{overflow-x:hidden}.panel{height:calc(100vh - 190px);min-height:540px;display:flex;flex-direction:column}.graph{flex:1;min-height:0}.hiddenstate{flex:1;min-height:0}}
+</style>
+</head>
+<body><main>
+<div class="top">
+<label><span>Funktion f(x)</span><input id="fn" type="text" value="0.75*x+0.5" spellcheck="false"></label>
+<label><span>Startgrenze a</span><input id="aval" type="number" value="0" step="0.5"></label>
+<button id="apply" class="primary">Übernehmen</button>
+</div>
+<div class="help">Beispiele: x^2-2 · sin(x) · cos(x)+1 · x^3-3*x · exp(-x) · sqrt(x+2)</div>
+<div id="error" class="error"></div>
+<div class="sliderbox">
+ <div class="sliderhead"><div><b>Bewegliche Grenze:</b> x = <b id="xout">2,00</b></div><div>Iₐ(x) = <b id="areaout">2,50</b></div></div>
+ <input id="slider" class="slider" type="range" min="-5" max="5" step="0.02" value="2">
+ <div class="ticks"><span>−5</span><span>0</span><span>5</span></div>
+</div>
+<div class="panels">
+<section class="panel">
+ <div><h2>1 · Flächenbilanz sammeln</h2><div class="muted">Die gestrichelte Linie ist die bewegliche Grenze x.</div></div>
+ <svg id="gf" class="graph" viewBox="0 0 620 390" aria-label="Graph der Funktion und Flächenbilanz"></svg>
+ <div class="result"><div class="muted">Gesammelte Flächenbilanz</div><div id="formulaValue" class="big mathIntegral" aria-live="polite"></div></div>
+</section>
+<section class="panel">
+ <div><h2>2 · Integralfunktion</h2><div id="secondHint" class="muted"></div></div>
+ <div id="hiddenState" class="hiddenstate"><p><b>Wie könnte der Graph von Iₐ verlaufen?</b><br><br><span class="muted">Bewege x und beobachte, wann die Flächenbilanz wächst oder fällt.</span></p></div>
+ <svg id="gi" class="graph" viewBox="0 0 620 390" style="display:none" aria-label="Integralfunktion"></svg>
+ <div class="actions">
+  <button id="trace">Spur aufbauen</button>
+  <button id="show" class="primary">Integralfunktion anzeigen</button>
+  <button id="clear" style="display:none">Spur löschen</button>
+ </div>
+</section>
+</div>
+</main>
+<script>
+(()=>{"use strict";
+const $=s=>document.querySelector(s),fn=$("#fn"),aval=$("#aval"),slider=$("#slider"),gf=$("#gf"),gi=$("#gi");
+let F,a=0,mode="hidden",trace=[];
+const NS="http://www.w3.org/2000/svg",W=620,H=390,L=54,R=18,T=20,B=42,xmin=-5,xmax=5;
+const E=(n,o={})=>{let e=document.createElementNS(NS,n);for(const[k,v]of Object.entries(o))e.setAttribute(k,v);return e};
+const fmt=n=>(Math.abs(n)<.0005?0:n).toFixed(2).replace(".",",");
+function compile(s){
+ let z=s.trim().toLowerCase().replaceAll("^","**").replace(/\bpi\b/g,"Math.PI").replace(/\be\b/g,"Math.E");
+ const names=["sin","cos","tan","asin","acos","atan","sqrt","abs","exp","log","floor","ceil","round"];
+ names.forEach(n=>z=z.replace(new RegExp("\\b"+n+"\\s*\\(","g"),"Math."+n+"("));z=z.replace(/\bln\s*\(/g,"Math.log(");
+ if(!/^[0-9x+\-*/().,\sA-Za-z]*$/.test(z)||/(window|document|constructor|function|=>|;|\[|\]|\{|\})/i.test(z))throw Error("Ungültige Eingabe.");
+ return new Function("x","\"use strict\";return ("+z+");");
+}
+function val(x){try{let y=F(x);return Number.isFinite(y)?y:NaN}catch{return NaN}}
+function integral(x){if(x===a)return 0;let lo=Math.min(a,x),hi=Math.max(a,x),n=500,h=(hi-lo)/n,p=val(lo),s=0;if(!Number.isFinite(p))return NaN;for(let i=1;i<=n;i++){let c=val(lo+i*h);if(!Number.isFinite(c))return NaN;s+=(p+c)*h/2;p=c}return(x>=a?1:-1)*s}
+const mx=x=>L+(x-xmin)/(xmax-xmin)*(W-L-R);
+function range(kind){let y=[];for(let i=0;i<=180;i++){let x=xmin+10*i/180,v=kind==="f"?val(x):integral(x);if(Number.isFinite(v)&&Math.abs(v)<1e5)y.push(v)}if(!y.length)return[-5,5];let lo=Math.min(0,...y),hi=Math.max(0,...y);if(hi-lo<1){lo-=1;hi+=1}let p=(hi-lo)*.12;return[lo-p,hi+p]}
+function axes(svg,yr){svg.innerHTML="";let my=y=>H-B-(y-yr[0])/(yr[1]-yr[0])*(H-T-B);for(let x=-4;x<=4;x+=2){svg.append(E("line",{x1:mx(x),y1:T,x2:mx(x),y2:H-B,stroke:"#d7dce4"}));let t=E("text",{x:mx(x),y:H-B+22,"text-anchor":"middle",fill:"#657083","font-size":"12"});t.textContent=x;svg.append(t)}if(yr[0]<=0&&yr[1]>=0)svg.append(E("line",{x1:L,y1:my(0),x2:W-R,y2:my(0),stroke:"#172033","stroke-width":"1.4"}));svg.append(E("line",{x1:mx(0),y1:T,x2:mx(0),y2:H-B,stroke:"#172033","stroke-width":"1.4"}));return my}
+function curve(svg,fun,my,color){let d="",open=false;for(let i=0;i<=400;i++){let x=xmin+10*i/400,y=fun(x);if(Number.isFinite(y)&&Math.abs(y)<1e5){d+=(open?"L":"M")+mx(x)+" "+my(y)+" ";open=true}else open=false}svg.append(E("path",{d,fill:"none",stroke:color,"stroke-width":"3","stroke-linecap":"round"}))}
+function drawF(){let my=axes(gf,range("f")),x=+slider.value,lo=Math.min(a,x),hi=Math.max(a,x),d=`M ${mx(lo)} ${my(0)} `;for(let i=0;i<=150;i++){let xx=lo+(hi-lo)*i/150,y=val(xx);if(Number.isFinite(y))d+=`L ${mx(xx)} ${my(y)} `}d+=`L ${mx(hi)} ${my(0)} Z`;gf.append(E("path",{d,fill:"#e1ad43",opacity:".38"}));curve(gf,val,my,"#2878a5");gf.append(E("line",{x1:mx(a),y1:T,x2:mx(a),y2:H-B,stroke:"#2878a5","stroke-width":"1.7","stroke-dasharray":"4 4"}));gf.append(E("line",{x1:mx(x),y1:T,x2:mx(x),y2:H-B,stroke:"#5b4bb7","stroke-width":"2.7","stroke-dasharray":"7 5"}))}
+function drawI(){let my=axes(gi,range("i"));if(mode==="full")curve(gi,integral,my,"#3d8b63");if(mode==="trace")trace.forEach(p=>gi.append(E("circle",{cx:mx(p[0]),cy:my(p[1]),r:4.5,fill:"#3d8b63"})));let x=+slider.value,y=integral(x);if(Number.isFinite(y))gi.append(E("circle",{cx:mx(x),cy:my(y),r:6,fill:"#5b4bb7"}))}
+function refresh(add=false){let x=+slider.value,y=integral(x);$("#xout").textContent=fmt(x);$("#areaout").textContent=Number.isFinite(y)?fmt(y):"nicht definiert";$("#formulaValue").innerHTML =
+`<span class="intstack" aria-hidden="true"><span class="intupper">${fmt(x)}</span><span class="intsymbol">∫</span><span class="intlower">${fmt(a)}</span></span>` +
+`<span class="mathbody">f(t) d<i>t</i> = ${Number.isFinite(y)?fmt(y):"–"}</span>`;drawF();if(mode!=="hidden"){if(add&&mode==="trace"&&Number.isFinite(y)){trace.push([x,y]);if(trace.length>300)trace.shift()}drawI()}}
+function apply(){let er=$("#error");er.style.display="none";try{F=compile(fn.value);a=Number(aval.value);if(!Number.isFinite(a)||a<xmin||a>xmax)throw Error("a muss zwischen −5 und 5 liegen.");let test=val(0);trace=[];refresh()}catch(e){er.textContent="Funktion konnte nicht dargestellt werden: "+e.message;er.style.display="block"}}
+$("#apply").addEventListener("click",apply);fn.addEventListener("keydown",e=>{if(e.key==="Enter")apply()});slider.addEventListener("input",()=>refresh(true));
+$("#trace").addEventListener("click",()=>{mode="trace";trace=[];$("#hiddenState").style.display="none";gi.style.display="block";$("#clear").style.display="inline-block";$("#secondHint").textContent="Bewege x: Nur die besuchten Punkte werden sichtbar.";refresh(true)});
+$("#show").addEventListener("click",()=>{if(mode==="full"){mode="hidden";gi.style.display="none";$("#hiddenState").style.display="flex";$("#secondHint").textContent="";$("#show").textContent="Integralfunktion anzeigen";}else{mode="full";$("#hiddenState").style.display="none";gi.style.display="block";$("#secondHint").textContent="Der vollständige Graph Iₐ(x) ist sichtbar.";$("#show").textContent="Integralfunktion ausblenden";refresh()}});
+$("#clear").addEventListener("click",()=>{trace=[];if(mode==="trace")refresh()});
+apply();
+})();
+</script></body></html>
